@@ -1,13 +1,6 @@
-# cgrep - Multi-threaded High Performance Grep in C23
+# cgrep - Grep in C23
 
-A high-performance subset of `grep` implemented in modern C23, featuring multi-threaded recursive search, `mmap` for fast I/O, and `pcre2` for regex matching.
-
-## Features
-- **C23 Standard**: Leveraging modern features like `bool`, `nullptr`, and `[[gnu::cleanup]]` for RAII.
-- **Parallel Processing**: Multi-threaded architecture with a lock-protected work queue and intrusive data structures.
-- **Fast I/O**: Uses `mmap` to minimize copies during file scanning.
-- **Filtering**: Supports glob-based `--include` and `--exclude` patterns.
-- **Memory & Thread Safety**: Fully instrumented with ASan and TSan.
+A subset of `grep` implemented in modern C23, with multi-threaded recursive search, `mmap` for I/O, and `pcre2` for regex matching.
 
 ## Building
 
@@ -48,7 +41,7 @@ make
 
 ## Testing & Verification
 
-The project includes a comprehensive test suite (Unit tests in C, Integration tests in Python).
+The project includes a test suite (Unit tests in C, Integration tests in Python).
 
 ### Run Tests
 ```bash
