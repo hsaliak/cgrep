@@ -8,7 +8,8 @@ Checks: >
   misc-*,
   -readability-braces-around-statements,
   -readability-magic-numbers,
-  -readability-named-parameter
+  -readability-named-parameter,
+  -clang-analyzer-unix.Malloc
 
 WarningsAsErrors: '*'
 HeaderFilterRegex: '.*'

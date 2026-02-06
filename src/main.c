@@ -56,23 +56,22 @@ int main(int argc, char *argv[]) {
                 exclude_patterns[disc_cfg.exclude_count++] = strdup(optarg);
                 exclude_patterns[disc_cfg.exclude_count] = NULL;
                 break;
-            case 'h': print_usage(argv[0]); return 0; // NOLINT(clang-analyzer-unix.Malloc)
+            case 'h': print_usage(argv[0]); return 0;
             default:
                 print_usage(argv[0]);
-                /* False positive: include_patterns and exclude_patterns are managed by auto_str_array RAII */
-                return 1; // NOLINT(clang-analyzer-unix.Malloc)
+                return 1;
         }
     }
 
     if (optind >= argc) {
         fprintf(stderr, "Error: Pattern is required.\n");
         print_usage(argv[0]);
-        return 1; // NOLINT(clang-analyzer-unix.Malloc)
+        return 1;
     }
 
     const char *pattern = argv[optind++];
     auto_pcre2_code pcre2_code *code = matcher_compile(pattern, grep_cfg.case_insensitive);
-    if (code == NULL) return 1; // NOLINT(clang-analyzer-unix.Malloc)
+    if (code == NULL) return 1;
     grep_cfg.code = code;
     disc_cfg.include_patterns = include_patterns;
     disc_cfg.exclude_patterns = exclude_patterns;
