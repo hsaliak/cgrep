@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <getopt.h>
+#include <sys/stat.h>
 #include <pthread.h>
 #include "raii.h"
 #include "discovery.h"
@@ -88,23 +89,34 @@ int main(int argc, char *argv[]) {
 
     auto_work_queue work_queue_t queue = {0};
     work_queue_init(&queue);
-
-    pthread_t workers[num_workers];
-    worker_args_t wargs = { .queue = &queue, .grep_config = &grep_cfg };
-
-    for (int i = 0; i < num_workers; i++) {
-        pthread_create(&workers[i], NULL, worker_thread, &wargs);
-    }
+    queue.pending_items = 1; // Prevent workers from exiting while we are still discovering
 
     if (optind >= argc) {
         discover_files(".", &disc_cfg, &queue);
     } else {
         for (; optind < argc; optind++) {
-            discover_files(argv[optind], &disc_cfg, &queue);
+            struct stat path_stat;
+            if (lstat(argv[optind], &path_stat) == 0) {
+                if (S_ISDIR(path_stat.st_mode)) {
+                    if (disc_cfg.recursive || strcmp(argv[optind], ".") == 0) {
+                        discover_files(argv[optind], &disc_cfg, &queue);
+                    }
+                } else {
+                    work_queue_push(&queue, argv[optind]);
+                }
+            }
         }
     }
 
-    work_queue_set_done(&queue);
+    pthread_t workers[num_workers];
+    worker_args_t wargs = { .queue = &queue, .grep_config = &grep_cfg, .discovery_config = &disc_cfg };
+
+    for (int i = 0; i < num_workers; i++) {
+        pthread_create(&workers[i], NULL, worker_thread, &wargs);
+    }
+
+    // Now that initial discovery is done and workers are started, decrement the sentinel
+    work_queue_item_done(&queue);
 
     for (int i = 0; i < num_workers; i++) {
         pthread_join(workers[i], NULL);

@@ -5,6 +5,7 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <fnmatch.h>
+#include <limits.h>
 
 bool should_process_file(const char *filename, const discovery_config_t *config) {
     const char *basename = strrchr(filename, '/');
@@ -42,13 +43,9 @@ bool is_binary(const char *buffer, size_t length) {
 
 void discover_files(const char *path, const discovery_config_t *config, work_queue_t *queue) {
     struct stat path_stat;
-    if (stat(path, &path_stat) != 0) return;
+    if (lstat(path, &path_stat) != 0) return;
 
     if (S_ISDIR(path_stat.st_mode)) {
-        if (!config->recursive && strcmp(path, ".") != 0) {
-             return;
-        }
-
         DIR *dir = opendir(path);
         if (!dir) return;
 
@@ -60,19 +57,7 @@ void discover_files(const char *path, const discovery_config_t *config, work_que
 
             char full_path[PATH_MAX];
             snprintf(full_path, sizeof(full_path), "%s/%s", path, entry->d_name);
-            
-            struct stat entry_stat;
-            if (lstat(full_path, &entry_stat) == 0) {
-                if (S_ISDIR(entry_stat.st_mode)) {
-                    if (config->recursive) {
-                        discover_files(full_path, config, queue);
-                    }
-                } else if (S_ISREG(entry_stat.st_mode)) {
-                    if (should_process_file(full_path, config)) {
-                        work_queue_push(queue, full_path);
-                    }
-                }
-            }
+            work_queue_push(queue, full_path);
         }
         closedir(dir);
     } else if (S_ISREG(path_stat.st_mode)) {

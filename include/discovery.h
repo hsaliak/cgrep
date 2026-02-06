@@ -4,7 +4,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-typedef struct {
+typedef struct discovery_config {
     char **include_patterns;
     size_t include_count;
     char **exclude_patterns;

@@ -11,6 +11,7 @@ void work_queue_init(work_queue_t *queue) {
     queue->items = malloc(queue->capacity * sizeof(char *));
     queue->head = 0;
     queue->tail = 0;
+    queue->pending_items = 0;
     pthread_mutex_init(&queue->mutex, NULL);
     pthread_cond_init(&queue->cond, NULL);
     queue->done = false;
@@ -25,6 +26,7 @@ void work_queue_push(work_queue_t *queue, const char *filename) {
     }
     
     queue->items[queue->tail++] = strdup(filename);
+    queue->pending_items++;
     
     pthread_cond_signal(&queue->cond);
     pthread_mutex_unlock(&queue->mutex);
@@ -37,7 +39,7 @@ char* work_queue_pop(work_queue_t *queue) {
         pthread_cond_wait(&queue->cond, &queue->mutex);
     }
 
-    if (queue->head == queue->tail) {
+    if (queue->done && queue->head == queue->tail) {
         pthread_mutex_unlock(&queue->mutex);
         return NULL;
     }
@@ -52,6 +54,16 @@ char* work_queue_pop(work_queue_t *queue) {
     
     pthread_mutex_unlock(&queue->mutex);
     return filename;
+}
+
+void work_queue_item_done(work_queue_t *queue) {
+    pthread_mutex_lock(&queue->mutex);
+    queue->pending_items--;
+    if (queue->pending_items == 0) {
+        queue->done = true;
+        pthread_cond_broadcast(&queue->cond);
+    }
+    pthread_mutex_unlock(&queue->mutex);
 }
 
 void work_queue_set_done(work_queue_t *queue) {
@@ -71,29 +83,49 @@ void work_queue_destroy(work_queue_t *queue) {
     pthread_cond_destroy(&queue->cond);
 }
 
+static void search_file(const char *filename, worker_args_t *args) {
+    auto_close int fd = open(filename, O_RDONLY);
+    if (fd < 0) return;
+
+    struct stat st;
+    if (fstat(fd, &st) != 0 || st.st_size == 0) return;
+
+    auto_munmap struct mmap_region region = { .addr = MAP_FAILED, .length = (size_t)st.st_size };
+    region.addr = mmap(NULL, region.length, PROT_READ, MAP_PRIVATE, fd, 0);
+    if (region.addr == MAP_FAILED) return;
+
+    if (args->discovery_config->ignore_binary && is_binary(region.addr, region.length)) {
+        return;
+    }
+
+    matcher_process_buffer(filename, region.addr, region.length, args->grep_config);
+}
+
 void* worker_thread(void *arg) {
     worker_args_t *args = (worker_args_t*)arg;
     work_queue_t *queue = args->queue;
 
     while (true) {
-        auto_free char *filename = work_queue_pop(queue);
-        if (filename == NULL) break;
-
-        auto_close int fd = open(filename, O_RDONLY);
-        if (fd < 0) continue;
+        auto_free char *path = work_queue_pop(queue);
+        if (path == NULL) break;
 
         struct stat st;
-        if (fstat(fd, &st) != 0 || st.st_size == 0) continue;
-
-        auto_munmap struct mmap_region region = { .addr = MAP_FAILED, .length = (size_t)st.st_size };
-        region.addr = mmap(NULL, region.length, PROT_READ, MAP_PRIVATE, fd, 0);
-        if (region.addr == MAP_FAILED) continue;
-
-        if (is_binary(region.addr, region.length)) {
+        if (lstat(path, &st) != 0) {
+            work_queue_item_done(queue);
             continue;
         }
 
-        matcher_process_buffer(filename, region.addr, region.length, args->grep_config);
+        if (S_ISDIR(st.st_mode)) {
+            if (args->discovery_config->recursive) {
+                discover_files(path, args->discovery_config, queue);
+            }
+        } else if (S_ISREG(st.st_mode)) {
+            if (should_process_file(path, args->discovery_config)) {
+                search_file(path, args);
+            }
+        }
+
+        work_queue_item_done(queue);
     }
 
     return NULL;

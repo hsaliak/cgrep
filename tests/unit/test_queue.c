@@ -74,10 +74,33 @@ void test_queue_concurrent(void) {
     work_queue_destroy(&queue);
 }
 
+void test_queue_auto_done(void) {
+    work_queue_t queue;
+    work_queue_init(&queue);
+    
+    work_queue_push(&queue, "item1");
+    work_queue_push(&queue, "item2");
+    
+    char *f1 = work_queue_pop(&queue);
+    free(f1);
+    work_queue_item_done(&queue);
+    
+    char *f2 = work_queue_pop(&queue);
+    free(f2);
+    work_queue_item_done(&queue);
+    
+    TEST_ASSERT_TRUE(queue.done);
+    char *f3 = work_queue_pop(&queue);
+    TEST_ASSERT_TRUE(f3 == NULL);
+    
+    work_queue_destroy(&queue);
+}
+
 int main(void) {
     UNITY_BEGIN();
     RUN_TEST(test_queue_basic_push_pop);
     RUN_TEST(test_queue_done);
     RUN_TEST(test_queue_concurrent);
+    RUN_TEST(test_queue_auto_done);
     return UNITY_END();
 }
