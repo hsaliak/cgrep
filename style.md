@@ -3,8 +3,7 @@
 This document outlines the technical requirements, coding standards, and tool configurations for this project.
 
 ## 1. Overview
-This project is a modern C starter template designed for C23 development. It integrates robust linting, sanitizers, and automatic resource management (RAII-like) patterns.
-
+This project is in "modern" C.
 ## 2. Technical Requirements
 - **Standard**: ISO C23 (C2X).
 - **Compiler Support**: Modern Clang (e.g., Clang 15+) or GCC (e.g., GCC 13+) with support for `[[...]]` attribute syntax.
@@ -37,7 +36,7 @@ This project is a modern C starter template designed for C23 development. It int
 - **Cleanup functions** must accept a pointer to the variable being cleaned up.
 
 ## 5. C23 Feature Usage
-- **Attributes**: `[[gnu::cleanup]]`, `[[maybe_unused]]`, etc.
+- **Attributes**: cleanup, `[[maybe_unused]]`.
 - **Keywords**: `bool`, `true`, `false`, `static_assert` (single argument).
 - **Standard Library**: Uses `nullptr` and `constexpr` where supported; provides fallbacks for environments with partial C23 support.
 
