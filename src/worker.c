@@ -7,49 +7,50 @@
 #include <string.h>
 
 void work_queue_init(work_queue_t *q) {
-    q->head = q->tail = NULL;
+    q->capacity = 1024;
+    q->items = malloc(q->capacity * sizeof(char *));
+    q->head = 0;
+    q->tail = 0;
     pthread_mutex_init(&q->mutex, NULL);
     pthread_cond_init(&q->cond, NULL);
     q->done = false;
 }
 
 void work_queue_push(work_queue_t *q, const char *filename) {
-    work_item_t *item = malloc(sizeof(work_item_t));
-    item->filename = strdup(filename);
-    item->node.next = NULL;
-
     pthread_mutex_lock(&q->mutex);
-    if (q->tail) {
-        q->tail->next = &item->node;
-        q->tail = &item->node;
-    } else {
-        q->head = q->tail = &item->node;
+    
+    if (q->tail == q->capacity) {
+        q->capacity *= 2;
+        q->items = realloc(q->items, q->capacity * sizeof(char *));
     }
+    
+    q->items[q->tail++] = strdup(filename);
+    
     pthread_cond_signal(&q->cond);
     pthread_mutex_unlock(&q->mutex);
 }
 
 char* work_queue_pop(work_queue_t *q) {
     pthread_mutex_lock(&q->mutex);
-    while (q->head == NULL && !q->done) {
+    
+    while (q->head == q->tail && !q->done) {
         pthread_cond_wait(&q->cond, &q->mutex);
     }
 
-    if (q->head == NULL) {
+    if (q->head == q->tail) {
         pthread_mutex_unlock(&q->mutex);
         return NULL;
     }
 
-    list_node_t *node = q->head;
-    q->head = node->next;
-    if (q->head == NULL) {
-        q->tail = NULL;
+    char *filename = q->items[q->head++];
+    
+    // Auto-Reset optimization
+    if (q->head == q->tail) {
+        q->head = 0;
+        q->tail = 0;
     }
+    
     pthread_mutex_unlock(&q->mutex);
-
-    work_item_t *item = container_of(node, work_item_t, node);
-    char *filename = item->filename;
-    free(item);
     return filename;
 }
 
@@ -61,6 +62,11 @@ void work_queue_set_done(work_queue_t *q) {
 }
 
 void work_queue_destroy(work_queue_t *q) {
+    // Free any remaining strings in the queue
+    for (size_t i = q->head; i < q->tail; i++) {
+        free(q->items[i]);
+    }
+    free(q->items);
     pthread_mutex_destroy(&q->mutex);
     pthread_cond_destroy(&q->cond);
 }

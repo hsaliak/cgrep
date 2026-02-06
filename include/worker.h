@@ -2,17 +2,13 @@
 #define WORKER_H
 
 #include "matcher.h"
-#include "list.h"
 #include <pthread.h>
 
 typedef struct {
-    char *filename;
-    list_node_t node;
-} work_item_t;
-
-typedef struct {
-    list_node_t *head;
-    list_node_t *tail;
+    char **items;
+    size_t head;
+    size_t tail;
+    size_t capacity;
     pthread_mutex_t mutex;
     pthread_cond_t cond;
     bool done;
