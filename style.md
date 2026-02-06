@@ -41,6 +41,10 @@ This project is a modern C starter template designed for C23 development. It int
 - **Keywords**: `bool`, `true`, `false`, `static_assert` (single argument).
 - **Standard Library**: Uses `nullptr` and `constexpr` where supported; provides fallbacks for environments with partial C23 support.
 
+## 6. Data Structures
+- **Intrusive Structures**: We strongly prefer intrusive data structures (e.g., intrusive linked lists) over traditional pointer-to-data structures. Intrusive structures improve cache locality, reduce separate heap allocations, and simplify ownership management by embedding the management metadata directly within the data structure.
+- **Generic Handling**: Use `offsetof` and the `container_of` pattern to navigate from metadata nodes back to the parent structure.
+
 ## 6. Project Structure
 - `src/`: Source files (`.c`).
 - `include/`: Public headers (`.h`).
