@@ -3,8 +3,6 @@
 #include <pthread.h>
 #include <unistd.h>
 
-work_queue_t g_work_queue;
-
 void setUp(void) {}
 void tearDown(void) {}
 

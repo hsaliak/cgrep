@@ -6,8 +6,6 @@
 #include <sys/stat.h>
 #include <fnmatch.h>
 
-extern work_queue_t g_work_queue;
-
 bool should_process_file(const char *filename, const discovery_config_t *config) {
     const char *basename = strrchr(filename, '/');
     basename = (basename == NULL) ? filename : basename + 1;
@@ -42,15 +40,12 @@ bool is_binary(const char *buffer, size_t length) {
     return false;
 }
 
-void discover_files(const char *path, const discovery_config_t *config) {
+void discover_files(const char *path, const discovery_config_t *config, work_queue_t *queue) {
     struct stat st;
     if (stat(path, &st) != 0) return;
 
     if (S_ISDIR(st.st_mode)) {
         if (!config->recursive && strcmp(path, ".") != 0) {
-             // If not recursive, we only look at the directory if it was the starting point?
-             // Actually, usually grep without -r on a directory says "is a directory".
-             // We'll follow -r logic.
              return;
         }
 
@@ -70,11 +65,11 @@ void discover_files(const char *path, const discovery_config_t *config) {
             if (lstat(full_path, &entry_st) == 0) {
                 if (S_ISDIR(entry_st.st_mode)) {
                     if (config->recursive) {
-                        discover_files(full_path, config);
+                        discover_files(full_path, config, queue);
                     }
                 } else if (S_ISREG(entry_st.st_mode)) {
                     if (should_process_file(full_path, config)) {
-                        work_queue_push(&g_work_queue, full_path);
+                        work_queue_push(queue, full_path);
                     }
                 }
             }
@@ -82,7 +77,7 @@ void discover_files(const char *path, const discovery_config_t *config) {
         closedir(dir);
     } else if (S_ISREG(st.st_mode)) {
         if (should_process_file(path, config)) {
-            work_queue_push(&g_work_queue, path);
+            work_queue_push(queue, path);
         }
     }
 }

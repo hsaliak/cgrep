@@ -8,8 +8,6 @@
 #include "worker.h"
 #include "matcher.h"
 
-work_queue_t g_work_queue;
-
 static void print_usage(const char *progname) {
     fprintf(stderr, "Usage: %s [OPTIONS] PATTERN [PATH...]\n", progname);
     fprintf(stderr, "Options:\n");
@@ -76,31 +74,30 @@ int main(int argc, char *argv[]) {
     disc_cfg.include_patterns = include_patterns;
     disc_cfg.exclude_patterns = exclude_patterns;
 
-    work_queue_init(&g_work_queue);
+    auto_work_queue work_queue_t queue = {0};
+    work_queue_init(&queue);
 
     int num_workers = 4; // Hardcoded for now, could be dynamic
     pthread_t workers[num_workers];
-    worker_args_t wargs = { .queue = &g_work_queue, .grep_config = &grep_cfg };
+    worker_args_t wargs = { .queue = &queue, .grep_config = &grep_cfg };
 
     for (int i = 0; i < num_workers; i++) {
         pthread_create(&workers[i], NULL, worker_thread, &wargs);
     }
 
     if (optind >= argc) {
-        discover_files(".", &disc_cfg);
+        discover_files(".", &disc_cfg, &queue);
     } else {
         for (; optind < argc; optind++) {
-            discover_files(argv[optind], &disc_cfg);
+            discover_files(argv[optind], &disc_cfg, &queue);
         }
     }
 
-    work_queue_set_done(&g_work_queue);
+    work_queue_set_done(&queue);
 
     for (int i = 0; i < num_workers; i++) {
         pthread_join(workers[i], NULL);
     }
-
-    work_queue_destroy(&g_work_queue);
 
     return 0;
 }

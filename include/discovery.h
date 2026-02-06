@@ -13,10 +13,12 @@ typedef struct {
     bool recursive;
 } discovery_config_t;
 
+#include "worker.h"
+
 /**
  * @brief Discover files and add them to the work queue.
  */
-void discover_files(const char *path, const discovery_config_t *config);
+void discover_files(const char *path, const discovery_config_t *config, work_queue_t *queue);
 
 /**
  * @brief Check if a file is binary.
