@@ -16,7 +16,15 @@ typedef struct discovery_config {
 #include "worker.h"
 
 /**
- * @brief Discover files and add them to the work queue.
+ * @brief Discover files and directories and add them to the work queue.
+ * 
+ * If the path is a directory, its immediate children are added to the queue.
+ * If the path is a regular file, it is added if it matches the configuration filters.
+ * In a recursive search, worker threads call this function to expand subdirectories.
+ * 
+ * @param path The path to start discovery from.
+ * @param config The discovery configuration (filters, recursive flag).
+ * @param queue The work queue to push discovered items to.
  */
 void discover_files(const char *path, const discovery_config_t *config, work_queue_t *queue);
 

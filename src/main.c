@@ -4,10 +4,19 @@
 #include <getopt.h>
 #include <sys/stat.h>
 #include <pthread.h>
+#include <unistd.h>
 #include "raii.h"
 #include "discovery.h"
 #include "worker.h"
 #include "matcher.h"
+
+static int get_default_num_workers(void) {
+    long ncpus = sysconf(_SC_NPROCESSORS_ONLN);
+    if (ncpus <= 0) {
+        return 4;
+    }
+    return ncpus < 4 ? 4 : (int)ncpus;
+}
 
 static void print_usage(const char *progname) {
     fprintf(stderr, "Usage: %s [OPTIONS] PATTERN [PATH...]\n", progname);
@@ -15,7 +24,7 @@ static void print_usage(const char *progname) {
     fprintf(stderr, "  -i, --ignore-case      Ignore case distinctions\n");
     fprintf(stderr, "  -n, --line-number      Print line number with output lines\n");
     fprintf(stderr, "  -r, --recursive        Read all files under each directory, recursively\n");
-    fprintf(stderr, "  -w, --workers=NUM      Number of worker threads (default: 1)\n");
+    fprintf(stderr, "  -w, --workers=NUM      Number of worker threads (default: auto)\n");
     fprintf(stderr, "  -I                     Process a binary file as if it did not contain matching data (default)\n");
     fprintf(stderr, "  --include=GLOB         Search only files whose base name matches GLOB\n");
     fprintf(stderr, "  --exclude=GLOB         Skip files whose base name matches GLOB\n");
@@ -42,7 +51,7 @@ int main(int argc, char *argv[]) {
         {0, 0, 0, 0}
     };
 
-    int num_workers = 1;
+    int num_workers = get_default_num_workers();
     int opt;
     while ((opt = getopt_long(argc, argv, "inrw:Ih", long_options, NULL)) != -1) {
         switch (opt) {
