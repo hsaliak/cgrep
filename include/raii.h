@@ -17,24 +17,24 @@
  */
 
 static inline void cleanup_free(void *ptr) {
-    void **p = (void **)ptr;
-    if (*p) {
-        free(*p);
-        *p = NULL;
+    void **ptr_val = (void **)ptr;
+    if (*ptr_val) {
+        free(*ptr_val);
+        *ptr_val = NULL;
     }
 }
 
-static inline void cleanup_close(int *fd) {
-    if (*fd >= 0) {
-        close(*fd);
-        *fd = -1;
+static inline void cleanup_close(int *file_descriptor) {
+    if (*file_descriptor >= 0) {
+        close(*file_descriptor);
+        *file_descriptor = -1;
     }
 }
 
-static inline void cleanup_file(FILE **f) {
-    if (*f) {
-        fclose(*f);
-        *f = NULL;
+static inline void cleanup_file(FILE **file_ptr) {
+    if (*file_ptr) {
+        fclose(*file_ptr);
+        *file_ptr = NULL;
     }
 }
 

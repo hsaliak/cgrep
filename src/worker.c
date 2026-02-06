@@ -6,77 +6,77 @@
 #include <sys/mman.h>
 #include <string.h>
 
-void work_queue_init(work_queue_t *q) {
-    q->capacity = 1024;
-    q->items = malloc(q->capacity * sizeof(char *));
-    q->head = 0;
-    q->tail = 0;
-    pthread_mutex_init(&q->mutex, NULL);
-    pthread_cond_init(&q->cond, NULL);
-    q->done = false;
+void work_queue_init(work_queue_t *queue) {
+    queue->capacity = 1024;
+    queue->items = malloc(queue->capacity * sizeof(char *));
+    queue->head = 0;
+    queue->tail = 0;
+    pthread_mutex_init(&queue->mutex, NULL);
+    pthread_cond_init(&queue->cond, NULL);
+    queue->done = false;
 }
 
-void work_queue_push(work_queue_t *q, const char *filename) {
-    pthread_mutex_lock(&q->mutex);
+void work_queue_push(work_queue_t *queue, const char *filename) {
+    pthread_mutex_lock(&queue->mutex);
     
-    if (q->tail == q->capacity) {
-        q->capacity *= 2;
-        q->items = realloc(q->items, q->capacity * sizeof(char *));
+    if (queue->tail == queue->capacity) {
+        queue->capacity *= 2;
+        queue->items = realloc(queue->items, queue->capacity * sizeof(char *));
     }
     
-    q->items[q->tail++] = strdup(filename);
+    queue->items[queue->tail++] = strdup(filename);
     
-    pthread_cond_signal(&q->cond);
-    pthread_mutex_unlock(&q->mutex);
+    pthread_cond_signal(&queue->cond);
+    pthread_mutex_unlock(&queue->mutex);
 }
 
-char* work_queue_pop(work_queue_t *q) {
-    pthread_mutex_lock(&q->mutex);
+char* work_queue_pop(work_queue_t *queue) {
+    pthread_mutex_lock(&queue->mutex);
     
-    while (q->head == q->tail && !q->done) {
-        pthread_cond_wait(&q->cond, &q->mutex);
+    while (queue->head == queue->tail && !queue->done) {
+        pthread_cond_wait(&queue->cond, &queue->mutex);
     }
 
-    if (q->head == q->tail) {
-        pthread_mutex_unlock(&q->mutex);
+    if (queue->head == queue->tail) {
+        pthread_mutex_unlock(&queue->mutex);
         return NULL;
     }
 
-    char *filename = q->items[q->head++];
+    char *filename = queue->items[queue->head++];
     
     // Auto-Reset optimization
-    if (q->head == q->tail) {
-        q->head = 0;
-        q->tail = 0;
+    if (queue->head == queue->tail) {
+        queue->head = 0;
+        queue->tail = 0;
     }
     
-    pthread_mutex_unlock(&q->mutex);
+    pthread_mutex_unlock(&queue->mutex);
     return filename;
 }
 
-void work_queue_set_done(work_queue_t *q) {
-    pthread_mutex_lock(&q->mutex);
-    q->done = true;
-    pthread_cond_broadcast(&q->cond);
-    pthread_mutex_unlock(&q->mutex);
+void work_queue_set_done(work_queue_t *queue) {
+    pthread_mutex_lock(&queue->mutex);
+    queue->done = true;
+    pthread_cond_broadcast(&queue->cond);
+    pthread_mutex_unlock(&queue->mutex);
 }
 
-void work_queue_destroy(work_queue_t *q) {
+void work_queue_destroy(work_queue_t *queue) {
     // Free any remaining strings in the queue
-    for (size_t i = q->head; i < q->tail; i++) {
-        free(q->items[i]);
+    for (size_t i = queue->head; i < queue->tail; i++) {
+        free(queue->items[i]);
     }
-    free(q->items);
-    pthread_mutex_destroy(&q->mutex);
-    pthread_cond_destroy(&q->cond);
+    free(queue->items);
+    pthread_mutex_destroy(&queue->mutex);
+    pthread_cond_destroy(&queue->cond);
 }
 
 void* worker_thread(void *arg) {
     worker_args_t *args = (worker_args_t*)arg;
-    work_queue_t *q = args->queue;
+    work_queue_t *queue = args->queue;
 
     while (true) {
-        auto_free char *filename = work_queue_pop(q);
+        auto_free char *filename = work_queue_pop(queue);
         if (filename == NULL) break;
 
         auto_close int fd = open(filename, O_RDONLY);

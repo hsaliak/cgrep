@@ -41,10 +41,10 @@ bool is_binary(const char *buffer, size_t length) {
 }
 
 void discover_files(const char *path, const discovery_config_t *config, work_queue_t *queue) {
-    struct stat st;
-    if (stat(path, &st) != 0) return;
+    struct stat path_stat;
+    if (stat(path, &path_stat) != 0) return;
 
-    if (S_ISDIR(st.st_mode)) {
+    if (S_ISDIR(path_stat.st_mode)) {
         if (!config->recursive && strcmp(path, ".") != 0) {
              return;
         }
@@ -61,13 +61,13 @@ void discover_files(const char *path, const discovery_config_t *config, work_que
             char full_path[PATH_MAX];
             snprintf(full_path, sizeof(full_path), "%s/%s", path, entry->d_name);
             
-            struct stat entry_st;
-            if (lstat(full_path, &entry_st) == 0) {
-                if (S_ISDIR(entry_st.st_mode)) {
+            struct stat entry_stat;
+            if (lstat(full_path, &entry_stat) == 0) {
+                if (S_ISDIR(entry_stat.st_mode)) {
                     if (config->recursive) {
                         discover_files(full_path, config, queue);
                     }
-                } else if (S_ISREG(entry_st.st_mode)) {
+                } else if (S_ISREG(entry_stat.st_mode)) {
                     if (should_process_file(full_path, config)) {
                         work_queue_push(queue, full_path);
                     }
@@ -75,7 +75,7 @@ void discover_files(const char *path, const discovery_config_t *config, work_que
             }
         }
         closedir(dir);
-    } else if (S_ISREG(st.st_mode)) {
+    } else if (S_ISREG(path_stat.st_mode)) {
         if (should_process_file(path, config)) {
             work_queue_push(queue, path);
         }

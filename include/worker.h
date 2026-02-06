@@ -19,18 +19,18 @@ typedef struct {
     const grep_config_t *grep_config;
 } worker_args_t;
 
-void work_queue_init(work_queue_t *q);
-void work_queue_push(work_queue_t *q, const char *filename);
-char* work_queue_pop(work_queue_t *q);
-void work_queue_set_done(work_queue_t *q);
-void work_queue_destroy(work_queue_t *q);
+void work_queue_init(work_queue_t *queue);
+void work_queue_push(work_queue_t *queue, const char *filename);
+char* work_queue_pop(work_queue_t *queue);
+void work_queue_set_done(work_queue_t *queue);
+void work_queue_destroy(work_queue_t *queue);
 
 /**
  * RAII helper for work_queue_t.
  */
-static inline void work_queue_cleanup(work_queue_t *q) {
-    if (q->items) { // Simple check to see if it was initialized
-        work_queue_destroy(q);
+static inline void work_queue_cleanup(work_queue_t *queue) {
+    if (queue->items) { // Simple check to see if it was initialized
+        work_queue_destroy(queue);
     }
 }
 

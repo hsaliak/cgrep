@@ -39,12 +39,12 @@ void matcher_process_buffer(const char *filename, const char *buffer, size_t len
     if (match_data == NULL) return;
 
     PCRE2_SIZE start_offset = 0;
-    int rc;
+    int return_code;
     unsigned int line_number = 1;
     const char *last_line_start = buffer;
 
     while (start_offset < length) {
-        rc = pcre2_match(
+        return_code = pcre2_match(
             config->code,
             (PCRE2_SPTR)buffer,
             length,
@@ -54,9 +54,9 @@ void matcher_process_buffer(const char *filename, const char *buffer, size_t len
             NULL
         );
 
-        if (rc < 0) {
-            if (rc != PCRE2_ERROR_NOMATCH) {
-                fprintf(stderr, "Matching error %d\n", rc);
+        if (return_code < 0) {
+            if (return_code != PCRE2_ERROR_NOMATCH) {
+                fprintf(stderr, "Matching error %d\n", return_code);
             }
             break;
         }
@@ -72,8 +72,8 @@ void matcher_process_buffer(const char *filename, const char *buffer, size_t len
 
         // Count lines up to match
         if (config->line_numbering) {
-            for (const char *p = last_line_start; p < line_start; p++) {
-                if (*p == '\n') line_number++;
+            for (const char *ptr_pos = last_line_start; ptr_pos < line_start; ptr_pos++) {
+                if (*ptr_pos == '\n') line_number++;
             }
             last_line_start = line_start;
         }
