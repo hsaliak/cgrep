@@ -84,5 +84,20 @@ class TestCGrep(unittest.TestCase):
         res = self.run_cgrep("text", path)
         self.assertNotIn("binary.dat", res.stdout)
 
+    def test_workers_flag(self):
+        path = os.path.join(self.test_dir, "test.txt")
+        with open(path, "w") as f:
+            f.write("match")
+        
+        # Test with multiple workers
+        res = self.run_cgrep("-w", "4", "match", path)
+        self.assertEqual(res.returncode, 0)
+        self.assertIn("match", res.stdout)
+
+        # Test with invalid worker count
+        res = self.run_cgrep("-w", "0", "match", path)
+        self.assertNotEqual(res.returncode, 0)
+        self.assertIn("Error: Number of workers must be at least 1", res.stderr)
+
 if __name__ == "__main__":
     unittest.main()

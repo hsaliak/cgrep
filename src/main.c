@@ -14,6 +14,7 @@ static void print_usage(const char *progname) {
     fprintf(stderr, "  -i, --ignore-case      Ignore case distinctions\n");
     fprintf(stderr, "  -n, --line-number      Print line number with output lines\n");
     fprintf(stderr, "  -r, --recursive        Read all files under each directory, recursively\n");
+    fprintf(stderr, "  -w, --workers=NUM      Number of worker threads (default: 1)\n");
     fprintf(stderr, "  -I                     Process a binary file as if it did not contain matching data (default)\n");
     fprintf(stderr, "  --include=GLOB         Search only files whose base name matches GLOB\n");
     fprintf(stderr, "  --exclude=GLOB         Skip files whose base name matches GLOB\n");
@@ -33,18 +34,27 @@ int main(int argc, char *argv[]) {
         {"ignore-case", no_argument, 0, 'i'},
         {"line-number", no_argument, 0, 'n'},
         {"recursive",   no_argument, 0, 'r'},
+        {"workers",     required_argument, 0, 'w'},
         {"include",     required_argument, 0, 1},
         {"exclude",     required_argument, 0, 2},
         {"help",        no_argument, 0, 'h'},
         {0, 0, 0, 0}
     };
 
+    int num_workers = 1;
     int opt;
-    while ((opt = getopt_long(argc, argv, "inrIh", long_options, NULL)) != -1) {
+    while ((opt = getopt_long(argc, argv, "inrw:Ih", long_options, NULL)) != -1) {
         switch (opt) {
             case 'i': grep_cfg.case_insensitive = true; break;
             case 'n': grep_cfg.line_numbering = true; break;
             case 'r': disc_cfg.recursive = true; break;
+            case 'w':
+                num_workers = atoi(optarg);
+                if (num_workers <= 0) {
+                    fprintf(stderr, "Error: Number of workers must be at least 1.\n");
+                    return 1;
+                }
+                break;
             case 'I': disc_cfg.ignore_binary = true; break;
             case 1: // --include
                 include_patterns = realloc(include_patterns, sizeof(char*) * (disc_cfg.include_count + 2));
@@ -79,7 +89,6 @@ int main(int argc, char *argv[]) {
     auto_work_queue work_queue_t queue = {0};
     work_queue_init(&queue);
 
-    int num_workers = 4; // Hardcoded for now, could be dynamic
     pthread_t workers[num_workers];
     worker_args_t wargs = { .queue = &queue, .grep_config = &grep_cfg };
 
