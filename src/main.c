@@ -10,13 +10,6 @@
 #include "worker.h"
 #include "matcher.h"
 
-static int get_default_num_workers(void) {
-    long ncpus = sysconf(_SC_NPROCESSORS_ONLN);
-    if (ncpus <= 0) {
-        return 4;
-    }
-    return ncpus < 4 ? 4 : (int)ncpus;
-}
 
 static void print_usage(const char *progname) {
     fprintf(stderr, "Usage: %s [OPTIONS] PATTERN [PATH...]\n", progname);
@@ -51,7 +44,7 @@ int main(int argc, char *argv[]) {
         {0, 0, 0, 0}
     };
 
-    int num_workers = get_default_num_workers();
+    int num_workers = 3;
     int opt;
     while ((opt = getopt_long(argc, argv, "inrw:Ih", long_options, NULL)) != -1) {
         switch (opt) {
