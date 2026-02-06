@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.15)
 project(CStarterProject LANGUAGES C)
+add_compile_definitions(_DEFAULT_SOURCE)
+
 
 # Standard: C23
 set(CMAKE_C_STANDARD 23)
