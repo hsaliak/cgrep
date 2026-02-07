@@ -15,6 +15,7 @@ static void print_usage(const char *progname) {
     fprintf(stderr, "Usage: %s [OPTIONS] PATTERN [PATH...]\n", progname);
     fprintf(stderr, "Options:\n");
     fprintf(stderr, "  -i, --ignore-case      Ignore case distinctions\n");
+    fprintf(stderr, "  -F, --fixed-strings    Interpret PATTERN as a fixed string, not a regular expression\n");
     fprintf(stderr, "  -n, --line-number      Print line number with output lines\n");
     fprintf(stderr, "  -r, --recursive        Read all files under each directory, recursively\n");
     fprintf(stderr, "  -w, --workers=NUM      Number of worker threads (default: auto)\n");
@@ -35,6 +36,7 @@ int main(int argc, char *argv[]) {
 
     static struct option long_options[] = {
         {"ignore-case", no_argument, 0, 'i'},
+        {"fixed-strings", no_argument, 0, 'F'},
         {"line-number", no_argument, 0, 'n'},
         {"recursive",   no_argument, 0, 'r'},
         {"workers",     required_argument, 0, 'w'},
@@ -46,9 +48,10 @@ int main(int argc, char *argv[]) {
 
     int num_workers = 3;
     int opt;
-    while ((opt = getopt_long(argc, argv, "inrw:Ih", long_options, NULL)) != -1) {
+    while ((opt = getopt_long(argc, argv, "iFnrw:Ih", long_options, NULL)) != -1) {
         switch (opt) {
             case 'i': grep_cfg.case_insensitive = true; break;
+            case 'F': grep_cfg.fixed_strings = true; break;
             case 'n': grep_cfg.line_numbering = true; break;
             case 'r': disc_cfg.recursive = true; break;
             case 'w':
