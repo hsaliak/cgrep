@@ -4,7 +4,8 @@ import unittest
 import tempfile
 import shutil
 
-CGREP_BIN = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../build/cgrep"))
+DEFAULT_CGREP_BIN = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../build/cgrep"))
+CGREP_BIN = os.environ.get("CGREP_BIN", DEFAULT_CGREP_BIN)
 
 class TestCGrep(unittest.TestCase):
     def setUp(self):
