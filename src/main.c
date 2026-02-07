@@ -13,6 +13,7 @@
 
 static void print_usage(const char *progname) {
     fprintf(stderr, "Usage: %s [OPTIONS] PATTERN [PATH...]\n", progname);
+    fprintf(stderr, "If no PATH is provided, or if PATH is '-', read from standard input.\n");
     fprintf(stderr, "Options:\n");
     fprintf(stderr, "  -i, --ignore-case      Ignore case distinctions\n");
     fprintf(stderr, "  -F, --fixed-strings    Interpret PATTERN as a fixed string, not a regular expression\n");
@@ -100,9 +101,13 @@ int main(int argc, char *argv[]) {
     queue.pending_items = 1; // Prevent workers from exiting while we are still discovering
 
     if (optind >= argc) {
-        discover_files(".", &disc_cfg, &queue);
+        work_queue_push(&queue, "-");
     } else {
         for (; optind < argc; optind++) {
+            if (strcmp(argv[optind], "-") == 0) {
+                work_queue_push(&queue, "-");
+                continue;
+            }
             struct stat path_stat;
             if (lstat(argv[optind], &path_stat) == 0) {
                 if (S_ISDIR(path_stat.st_mode)) {
