@@ -12,6 +12,7 @@ typedef struct {
     bool case_insensitive;
     bool line_numbering;
     bool fixed_strings;
+    bool invert_match;
 } grep_config_t;
 
 /**
