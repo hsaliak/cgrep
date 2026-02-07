@@ -99,5 +99,31 @@ class TestCGrep(unittest.TestCase):
         self.assertNotEqual(res.returncode, 0)
         self.assertIn("Error: Number of workers must be at least 1", res.stderr)
 
+    def test_fixed_strings(self):
+        path = os.path.join(self.test_dir, "regex_chars.txt")
+        with open(path, "w") as f:
+            f.write("a.c\n")
+            f.write("abc\n")
+        
+        # Without -F, . is a wildcard
+        res = self.run_cgrep("a.c", path)
+        self.assertIn("a.c", res.stdout)
+        self.assertIn("abc", res.stdout)
+
+        # With -F, . is a literal dot
+        res = self.run_cgrep("-F", "a.c", path)
+        self.assertIn("a.c", res.stdout)
+        self.assertNotIn("abc", res.stdout)
+
+    def test_case_insensitive_fixed_strings(self):
+        path = os.path.join(self.test_dir, "case_literal.txt")
+        with open(path, "w") as f:
+            f.write("HELLO\n")
+            f.write("hello\n")
+        
+        res = self.run_cgrep("-Fi", "HELLO", path)
+        self.assertIn("HELLO", res.stdout)
+        self.assertIn("hello", res.stdout)
+
 if __name__ == "__main__":
     unittest.main()
