@@ -18,7 +18,8 @@ static void print_usage(const char *progname) {
     fprintf(stderr, "Options:\n");
     fprintf(stderr, "  -i, --ignore-case      Ignore case distinctions\n");
     fprintf(stderr, "  -F, --fixed-strings    Interpret PATTERN as a fixed string, not a regular expression\n");
-    fprintf(stderr, "  -n, --line-number      Print line number with output lines\n");
+    fprintf(stderr, "  -n, --line-number      Print line number with output lines (default)\n");
+    fprintf(stderr, "  --no-line-number       Suppress line number output\n");
     fprintf(stderr, "  -v, --invert-match     Invert match: select non-matching lines\n");
     fprintf(stderr, "  -r, --recursive        Read all files under each directory, recursively\n");
     fprintf(stderr, "  -w, --workers=NUM      Number of worker threads (default: auto)\n");
@@ -28,7 +29,7 @@ static void print_usage(const char *progname) {
 }
 
 int main(int argc, char *argv[]) {
-    grep_config_t grep_cfg = { .code = NULL, .case_insensitive = false, .line_numbering = false, .fixed_strings = false, .invert_match = false };
+    grep_config_t grep_cfg = { .code = NULL, .case_insensitive = false, .line_numbering = true, .fixed_strings = false, .invert_match = false };
     auto_str_array char **include_patterns = NULL;
     auto_str_array char **exclude_patterns = NULL;
     discovery_config_t disc_cfg = { 
@@ -41,6 +42,7 @@ int main(int argc, char *argv[]) {
         {"ignore-case", no_argument, 0, 'i'},
         {"fixed-strings", no_argument, 0, 'F'},
         {"line-number", no_argument, 0, 'n'},
+        {"no-line-number", no_argument, 0, 3},
         {"invert-match", no_argument, 0, 'v'},
         {"recursive",   no_argument, 0, 'r'},
         {"workers",     required_argument, 0, 'w'},
@@ -57,6 +59,7 @@ int main(int argc, char *argv[]) {
             case 'i': grep_cfg.case_insensitive = true; break;
             case 'F': grep_cfg.fixed_strings = true; break;
             case 'n': grep_cfg.line_numbering = true; break;
+            case 3:   grep_cfg.line_numbering = false; break;
             case 'v': grep_cfg.invert_match = true; break;
             case 'r': disc_cfg.recursive = true; break;
             case 'w':

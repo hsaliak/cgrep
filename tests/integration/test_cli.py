@@ -40,17 +40,29 @@ class TestCGrep(unittest.TestCase):
         
         res = self.run_cgrep("-r", "match", self.test_dir)
         self.assertEqual(res.returncode, 0)
-        self.assertIn("file1.txt:match this", res.stdout)
-        self.assertIn("file2.txt:match this too", res.stdout)
+        self.assertIn("file1.txt:1:match this", res.stdout)
+        self.assertIn("file2.txt:1:match this too", res.stdout)
 
     def test_line_numbers(self):
         path = os.path.join(self.test_dir, "lines.txt")
         with open(path, "w") as f:
             f.write("line 1\nline 2\nline 3")
         
-        res = self.run_cgrep("-n", "line 2", path)
+        # Test default line numbers
+        res = self.run_cgrep("line 2", path)
         self.assertEqual(res.returncode, 0)
         self.assertIn("2:line 2", res.stdout)
+
+        # Test explicit line numbers
+        res = self.run_cgrep("-n", "line 3", path)
+        self.assertEqual(res.returncode, 0)
+        self.assertIn("3:line 3", res.stdout)
+
+        # Test suppressing line numbers
+        res = self.run_cgrep("--no-line-number", "line 1", path)
+        self.assertEqual(res.returncode, 0)
+        self.assertNotIn("1:line 1", res.stdout)
+        self.assertIn("lines.txt:line 1", res.stdout)
 
     def test_case_insensitive(self):
         path = os.path.join(self.test_dir, "case.txt")
@@ -131,14 +143,14 @@ class TestCGrep(unittest.TestCase):
         process = subprocess.Popen([CGREP_BIN, "hello"], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         stdout, stderr = process.communicate(input="hello world\nthis is a test")
         self.assertEqual(process.returncode, 0)
-        self.assertIn("(standard input):hello world", stdout)
+        self.assertIn("(standard input):1:hello world", stdout)
         self.assertNotIn("this is a test", stdout)
 
         # Test explicit stdin marker '-'
         process = subprocess.Popen([CGREP_BIN, "test", "-"], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         stdout, stderr = process.communicate(input="hello world\nthis is a test")
         self.assertEqual(process.returncode, 0)
-        self.assertIn("(standard input):this is a test", stdout)
+        self.assertIn("(standard input):2:this is a test", stdout)
 
     def test_recursive_default_cwd(self):
         # Create a file in a subdirectory
@@ -152,7 +164,7 @@ class TestCGrep(unittest.TestCase):
         # We use cwd=self.test_dir to simulate running it from that location
         res = subprocess.run([CGREP_BIN, "-r", "recursive match"], cwd=self.test_dir, capture_output=True, text=True)
         self.assertEqual(res.returncode, 0)
-        self.assertIn("sub/findme.txt:recursive match", res.stdout)
+        self.assertIn("sub/findme.txt:1:recursive match", res.stdout)
 
 if __name__ == "__main__":
     unittest.main()
