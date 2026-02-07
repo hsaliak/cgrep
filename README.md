@@ -4,14 +4,32 @@ A subset of `grep` implemented in modern C23, with multi-threaded recursive sear
 
 ## Building
 
-### Standard Build (ASan enabled by default)
+The project uses CMake and provides convenience targets for different build configurations.
+
+### Common Build Targets
+Once you have initialized a build directory (e.g., `mkdir build && cd build && cmake ..`), you can run the following targets:
+
+- **Release Build** (Optimized, no sanitizers):
+  ```bash
+  cmake --build . --target release
+  ```
+- **ASan Build** (AddressSanitizer enabled):
+  ```bash
+  cmake --build . --target asan
+  ```
+- **TSan Build** (ThreadSanitizer enabled):
+  ```bash
+  cmake --build . --target tsan
+  ```
+
+### Standard CMake Build
 ```bash
 mkdir build && cd build
-cmake ..
+cmake .. -DCMAKE_BUILD_TYPE=Release
 make
 ```
 
-### Build Options
+#### Build Options
 - `-DENABLE_ASAN=ON/OFF`: Enable AddressSanitizer (Default: ON).
 - `-DENABLE_TSAN=ON/OFF`: Enable ThreadSanitizer (Default: OFF). Note: ASan and TSan cannot be enabled simultaneously.
 
@@ -41,18 +59,19 @@ make
 
 ## Testing & Verification
 
-The project includes a test suite (Unit tests in C, Integration tests in Python).
+The project includes unit tests (C) and integration tests (Python). You can run tests against specific build configurations using CMake targets.
 
-### Run Tests
-```bash
-cd build
-make test  # Or ctest
-```
+### Test Targets
+From your build directory:
+- **Test Release Build**: `cmake --build . --target test-release`
+- **Test ASan Build**: `cmake --build . --target test-asan`
+- **Test TSan Build**: `cmake --build . --target test-tsan`
+- **Test All**: `cmake --build . --target test-all` (Runs all of the above)
 
 ### Full Verification
-To run all tests under both ASan and TSan to ensure total correctness:
+You can also run the integrated verification script:
 ```bash
-make verify
+cmake --build . --target verify
 ```
 
 ## Linting

@@ -97,10 +97,53 @@ if(PYTHON_EXE)
              WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 endif()
 
-# Custom target to run the full verification script
+# --- Convenience targets for separate build configurations ---
+
+# Helper function to define build targets
+function(define_build_config name build_dir build_type asan tsan)
+    add_custom_target(${name}
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_SOURCE_DIR}/${build_dir}
+        COMMAND ${CMAKE_COMMAND} -B ${CMAKE_SOURCE_DIR}/${build_dir} 
+                -DCMAKE_BUILD_TYPE=${build_type} 
+                -DENABLE_ASAN=${asan} 
+                -DENABLE_TSAN=${tsan}
+        COMMAND ${CMAKE_COMMAND} --build ${CMAKE_SOURCE_DIR}/${build_dir} --parallel
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        COMMENT "Building ${name} in ${build_dir}..."
+        USES_TERMINAL
+    )
+endfunction()
+
+define_build_config(release build-release Release OFF OFF)
+define_build_config(asan    build-asan    Debug   ON  OFF)
+define_build_config(tsan    build-tsan    Debug   OFF ON )
+
+# Helper function to define test targets
+function(define_test_config name build_dir build_target)
+    add_custom_target(${name}
+        DEPENDS ${build_target}
+        COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_SOURCE_DIR}/${build_dir} ./unit_tests
+        COMMAND ${CMAKE_COMMAND} -E env CGREP_BIN=${CMAKE_SOURCE_DIR}/${build_dir}/cgrep 
+                ${PYTHON_EXE} ${CMAKE_SOURCE_DIR}/tests/integration/test_cli.py
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        COMMENT "Running tests for ${name} configuration..."
+        USES_TERMINAL
+    )
+endfunction()
+
+define_test_config(test-release build-release release)
+define_test_config(test-asan    build-asan    asan)
+define_test_config(test-tsan    build-tsan    tsan)
+
+add_custom_target(test-all
+    DEPENDS test-release test-asan test-tsan
+    COMMENT "Running all build and test configurations..."
+)
+
+# Legacy verification target
 add_custom_target(verify
     COMMAND ${CMAKE_SOURCE_DIR}/scripts/verify.sh
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-    COMMENT "Running full verification suite (ASan + TSan)"
+    COMMENT "Running full verification suite (ASan + TSan)..."
     USES_TERMINAL
 )
