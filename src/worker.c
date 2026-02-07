@@ -5,6 +5,8 @@
 #include <sys/stat.h>
 #include <sys/mman.h>
 #include <string.h>
+#include <stdlib.h>
+#include <unistd.h>
 
 void work_queue_init(work_queue_t *queue) {
     queue->capacity = 1024;
@@ -83,22 +85,53 @@ void work_queue_destroy(work_queue_t *queue) {
     pthread_cond_destroy(&queue->cond);
 }
 
+static void search_fd(int fd, const char *filename, worker_args_t *args) {
+    size_t capacity = 64 * 1024; // 64KB initial buffer
+    size_t length = 0;
+    auto_free char *buffer = malloc(capacity);
+    if (!buffer) return;
+
+    ssize_t n;
+    while ((n = read(fd, buffer + length, capacity - length)) > 0) {
+        length += (size_t)n;
+        if (length == capacity) {
+            capacity *= 2;
+            char *new_buffer = realloc(buffer, capacity);
+            if (!new_buffer) {
+                return;
+            }
+            buffer = new_buffer;
+        }
+    }
+
+    if (length > 0) {
+        if (!args->discovery_config->ignore_binary || !is_binary(buffer, length)) {
+            matcher_process_buffer(filename, buffer, length, args->grep_config);
+        }
+    }
+}
+
 static void search_file(const char *filename, worker_args_t *args) {
     auto_close int fd = open(filename, O_RDONLY);
     if (fd < 0) return;
 
     struct stat st;
-    if (fstat(fd, &st) != 0 || st.st_size == 0) return;
+    if (fstat(fd, &st) != 0) return;
 
-    auto_munmap struct mmap_region region = { .addr = MAP_FAILED, .length = (size_t)st.st_size };
-    region.addr = mmap(NULL, region.length, PROT_READ, MAP_PRIVATE, fd, 0);
-    if (region.addr == MAP_FAILED) return;
-
-    if (args->discovery_config->ignore_binary && is_binary(region.addr, region.length)) {
-        return;
+    // For regular files with non-zero size, use mmap
+    if (S_ISREG(st.st_mode) && st.st_size > 0) {
+        auto_munmap struct mmap_region region = { .addr = MAP_FAILED, .length = (size_t)st.st_size };
+        region.addr = mmap(NULL, region.length, PROT_READ, MAP_PRIVATE, fd, 0);
+        if (region.addr != MAP_FAILED) {
+            if (!args->discovery_config->ignore_binary || !is_binary(region.addr, region.length)) {
+                matcher_process_buffer(filename, region.addr, region.length, args->grep_config);
+            }
+            return;
+        }
     }
 
-    matcher_process_buffer(filename, region.addr, region.length, args->grep_config);
+    // Fallback to reading for special files (FIFOs, etc.) or if mmap fails
+    search_fd(fd, filename, args);
 }
 
 void* worker_thread(void *arg) {
@@ -108,6 +141,12 @@ void* worker_thread(void *arg) {
     while (true) {
         auto_free char *path = work_queue_pop(queue);
         if (path == NULL) break;
+
+        if (strcmp(path, "-") == 0) {
+            search_fd(STDIN_FILENO, "(standard input)", args);
+            work_queue_item_done(queue);
+            continue;
+        }
 
         struct stat st;
         if (lstat(path, &st) != 0) {
@@ -119,7 +158,8 @@ void* worker_thread(void *arg) {
             if (args->discovery_config->recursive) {
                 discover_files(path, args->discovery_config, queue);
             }
-        } else if (S_ISREG(st.st_mode)) {
+        } else {
+            // Process regular files or other readable types (like FIFOs)
             if (should_process_file(path, args->discovery_config)) {
                 search_file(path, args);
             }
