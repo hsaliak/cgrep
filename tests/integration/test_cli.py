@@ -140,5 +140,19 @@ class TestCGrep(unittest.TestCase):
         self.assertEqual(process.returncode, 0)
         self.assertIn("(standard input):this is a test", stdout)
 
+    def test_recursive_default_cwd(self):
+        # Create a file in a subdirectory
+        subdir = os.path.join(self.test_dir, "sub")
+        os.makedirs(subdir)
+        path = os.path.join(subdir, "findme.txt")
+        with open(path, "w") as f:
+            f.write("recursive match")
+        
+        # Run cgrep -r "recursive match" from inside the test directory
+        # We use cwd=self.test_dir to simulate running it from that location
+        res = subprocess.run([CGREP_BIN, "-r", "recursive match"], cwd=self.test_dir, capture_output=True, text=True)
+        self.assertEqual(res.returncode, 0)
+        self.assertIn("sub/findme.txt:recursive match", res.stdout)
+
 if __name__ == "__main__":
     unittest.main()
