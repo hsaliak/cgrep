@@ -4,13 +4,19 @@
 #include <string.h>
 #include "output.h"
 
-pcre2_code* matcher_compile(const char *pattern, bool case_insensitive) {
+pcre2_code* matcher_compile(const char *pattern, bool case_insensitive, bool fixed_strings) {
     int errornumber;
     PCRE2_SIZE erroroffset;
-    uint32_t options = PCRE2_MULTILINE;
+    uint32_t options = 0;
 
     if (case_insensitive) {
         options |= PCRE2_CASELESS;
+    }
+
+    if (fixed_strings) {
+        options |= PCRE2_LITERAL;
+    } else {
+        options |= PCRE2_MULTILINE;
     }
 
     pcre2_code *code = pcre2_compile(

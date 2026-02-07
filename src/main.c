@@ -24,7 +24,7 @@ static void print_usage(const char *progname) {
 }
 
 int main(int argc, char *argv[]) {
-    grep_config_t grep_cfg = { .code = NULL, .case_insensitive = false, .line_numbering = false };
+    grep_config_t grep_cfg = { .code = NULL, .case_insensitive = false, .line_numbering = false, .fixed_strings = false };
     auto_str_array char **include_patterns = NULL;
     auto_str_array char **exclude_patterns = NULL;
     discovery_config_t disc_cfg = { 
@@ -83,7 +83,7 @@ int main(int argc, char *argv[]) {
     }
 
     const char *pattern = argv[optind++];
-    auto_pcre2_code pcre2_code *code = matcher_compile(pattern, grep_cfg.case_insensitive);
+    auto_pcre2_code pcre2_code *code = matcher_compile(pattern, grep_cfg.case_insensitive, grep_cfg.fixed_strings);
     if (code == NULL) return 1;
     grep_cfg.code = code;
     disc_cfg.include_patterns = include_patterns;

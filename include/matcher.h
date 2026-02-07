@@ -11,12 +11,13 @@ typedef struct {
     pcre2_code *code;
     bool case_insensitive;
     bool line_numbering;
+    bool fixed_strings;
 } grep_config_t;
 
 /**
  * @brief Initialize the matcher with a pattern.
  */
-pcre2_code* matcher_compile(const char *pattern, bool case_insensitive);
+pcre2_code* matcher_compile(const char *pattern, bool case_insensitive, bool fixed_strings);
 
 /**
  * @brief Match a buffer and print results.
