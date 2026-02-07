@@ -126,5 +126,19 @@ class TestCGrep(unittest.TestCase):
         self.assertIn("HELLO", res.stdout)
         self.assertIn("hello", res.stdout)
 
+    def test_stdin_support(self):
+        # Test piping into cgrep (no path provided)
+        process = subprocess.Popen([CGREP_BIN, "hello"], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        stdout, stderr = process.communicate(input="hello world\nthis is a test")
+        self.assertEqual(process.returncode, 0)
+        self.assertIn("(standard input):hello world", stdout)
+        self.assertNotIn("this is a test", stdout)
+
+        # Test explicit stdin marker '-'
+        process = subprocess.Popen([CGREP_BIN, "test", "-"], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        stdout, stderr = process.communicate(input="hello world\nthis is a test")
+        self.assertEqual(process.returncode, 0)
+        self.assertIn("(standard input):this is a test", stdout)
+
 if __name__ == "__main__":
     unittest.main()
